@@ -2,10 +2,10 @@ const mysql = require('mysql2/promise');
 
 // Hostinger MySQL configuration with HARDCODED FALLBACKS
 const DB_CONFIG = {
-    host: process.env.DB_HOST || '193.203.184.211',
-    user: process.env.DB_USER || 'u662005344_coachingu',
-    password: process.env.DB_PASSWORD || 'Coaching55@',
-    database: process.env.DB_NAME || 'u662005344_coachingd',
+    host: process.env.DB_HOST || 'srv1833.hstgr.io',
+    user: process.env.DB_USER || 'u662005344_manbahadur',
+    password: process.env.DB_PASSWORD || 'nEwdata@22',
+    database: process.env.DB_NAME || 'u662005344_shanbahadur',
     port: Number(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
