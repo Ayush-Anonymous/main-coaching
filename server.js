@@ -4,14 +4,13 @@
  * Uses CommonJS for Hostinger compatibility
  */
 
-// Only load dotenv in development (Hostinger uses dashboard ENV)
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config();
-}
+// Always load dotenv (it won't override Hostinger env vars)
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
@@ -22,10 +21,18 @@ const PORT = process.env.PORT || 3000;
 console.log('========== ENV DEBUG ==========');
 console.log('PORT:', process.env.PORT || '3000 (fallback)');
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? 'LOADED ✅' : 'NOT LOADED ❌');
-console.log('DB_NAME:', process.env.DB_NAME);
+console.log('CWD:', process.cwd());
+console.log('__dirname:', __dirname);
+
+// Check if dist exists
+const distPath = path.join(__dirname, 'dist');
+const distIndexPath = path.join(distPath, 'index.html');
+console.log('Dist path:', distPath);
+console.log('Dist exists:', fs.existsSync(distPath));
+console.log('Dist index.html exists:', fs.existsSync(distIndexPath));
+if (fs.existsSync(distPath)) {
+    console.log('Dist contents:', fs.readdirSync(distPath));
+}
 console.log('===============================');
 
 // Middleware
@@ -37,7 +44,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from dist folder
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(distPath));
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -46,6 +53,8 @@ app.get('/health', (req, res) => {
         status: 'SERVER ALIVE',
         timestamp: new Date().toISOString(),
         database: db.isConnected ? 'connected' : 'checking...',
+        distExists: fs.existsSync(distPath),
+        distIndexExists: fs.existsSync(distIndexPath),
         env: {
             DB_HOST: process.env.DB_HOST ? 'SET' : 'NOT SET',
             DB_USER: process.env.DB_USER ? 'SET' : 'NOT SET',
@@ -72,7 +81,17 @@ app.use(require('./server/middleware/errorHandler'));
 
 // Catch-all for SPA (send index.html for any unmatched routes)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    if (fs.existsSync(distIndexPath)) {
+        res.sendFile(distIndexPath);
+    } else {
+        res.status(500).send(`
+            <h1>Build Not Found</h1>
+            <p>The dist/index.html file is missing.</p>
+            <p>Please run: npm run client:build</p>
+            <p>Dist path: ${distPath}</p>
+            <p>Exists: ${fs.existsSync(distPath)}</p>
+        `);
+    }
 });
 
 // ==================== START SERVER ====================
