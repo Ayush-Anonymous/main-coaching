@@ -17,12 +17,12 @@ const fs = require('fs');
 
 const app = express();
 
-// Hostinger injects PORT
-const PORT = process.env.PORT || 3000;
+// ❌ NO FALLBACK - Hostinger injects PORT automatically
+const PORT = process.env.PORT;
 
 // ==================== DEBUG LOGS ====================
 console.log('========== ENV DEBUG ==========');
-console.log('PORT:', process.env.PORT || '3000 (fallback)');
+console.log('PORT FROM HOSTINGER:', process.env.PORT);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('DB_HOST:', process.env.DB_HOST);
 console.log('DB_USER:', process.env.DB_USER);
@@ -97,6 +97,30 @@ app.get('/health', (req, res) => {
             DB_NAME: process.env.DB_NAME ? 'SET' : 'NOT SET'
         }
     });
+});
+
+// Database Test Endpoint (useful for debugging on Hostinger)
+app.get('/api/db-test', async (req, res) => {
+    try {
+        if (!pool) {
+            return res.status(503).json({
+                success: false,
+                message: 'Database not configured - check environment variables'
+            });
+        }
+
+        const [rows] = await pool.query('SELECT 1 as test');
+        res.json({
+            success: true,
+            message: 'Database connected successfully!',
+            data: rows
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Database connection failed: ' + error.message
+        });
+    }
 });
 
 // Export pool for routes
